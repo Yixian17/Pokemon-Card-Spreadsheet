@@ -27,7 +27,9 @@ client = gspread.authorize(creds)
 sheet = client.open("POKEMON")
 collection_sheet = sheet.worksheet("Collection")
 
-def fetch_card_price(unique_identifier, shiny):
+updates = []
+
+def fetch_card_price(unique_identifier, row, shiny):
     base_url = f"https://api.pokemontcg.io/v2/cards/{unique_identifier}"
     # headers = {'X-Api-Key': POKEMON_TCG_API_KEY}
     headers = {'X-Api-Key': POKEMON_TCG_API_KEY}
@@ -37,32 +39,33 @@ def fetch_card_price(unique_identifier, shiny):
         data = response.json().get('data', {})
         if data:
             if shiny == 'Normal':
-                return data.get('tcgplayer', {}).get('prices', {}).get('normal', {}).get('market', ''),
+                return updates.append((row, 10, data.get('tcgplayer', {}).get('prices', {}).get('normal', {}).get('market', ''))),
             elif shiny == 'Reverse Holofoil':
-                return data.get('tcgplayer', {}).get('prices', {}).get('reverseHolofoil', {}).get('market', ''),
+                return updates.append((row, 10, data.get('tcgplayer', {}).get('prices', {}).get('reverseHolofoil', {}).get('market', ''))),
             elif shiny == 'Holofoil':
-                return data.get('tcgplayer', {}).get('prices', {}).get('holofoil', {}).get('market', '')
+                return updates.append((row, 10, data.get('tcgplayer', {}).get('prices', {}).get('holofoil', {}).get('market', '')))
     return None
 
 def update_price_in_sheet(row, price):
     sheet.update_cell(row, 10, price)
 
-updates = []
+
 
 def main():
     records = collection_sheet.get_all_records(expected_headers=['Name', 'Card Number', 'Quantity', 'Unique Identifier', 'Type',  'Rarity','Shiny','Set','Status','Price (USD)','SGD'])
     for i, record in enumerate(records, start=2):
-        row = i + 1
+        row = i
         unique_identifier = record['Unique Identifier']
         card_shiny = record['Shiny']
 
         if unique_identifier:
             try:
-                logger.info(f'Processing row {row}: {record}')
-                price = fetch_card_price(unique_identifier, card_shiny)
+                # logger.info(f'Processing row {row}: {record}')
+                price = fetch_card_price(unique_identifier, row, card_shiny)
                 if price is not None:
                     # update_price_in_sheet(row, price)
-                    updates.extend(price)
+                    # updates.extend(price)
+                    # print(updates)
                     # logger.info(f'Updated price for card with ID {unique_identifier}')
                     logger.info(f'Added price for card with ID {unique_identifier} into updates')
                 else:
