@@ -57,6 +57,7 @@ def main():
         row = i
         unique_identifier = record['Unique Identifier']
         card_shiny = record['Shiny']
+        print(card_shiny)
 
         if unique_identifier:
             try:
