@@ -10,7 +10,7 @@ load_dotenv()
 
 # Constants
 GOOGLE_SHEETS_CREDENTIALS = os.getenv('GOOGLE_SHEETS_CREDENTIALS')
-SHEET_NAME = os.getenv('SHEET_NAME')
+# SHEET_NAME = os.getenv('SHEET_NAME')
 POKEMON_TCG_API_KEY = os.getenv('POKEMON_TCG_API_KEY')
 
 # Setup logging
