@@ -46,8 +46,8 @@ def fetch_card_price(unique_identifier, row, shiny):
                 return updates.append((row, 10, data.get('tcgplayer', {}).get('prices', {}).get('holofoil', {}).get('market', '')))
     return None
 
-def update_price_in_sheet(row, price):
-    sheet.update_cell(row, 10, price)
+# def update_price_in_sheet(row, price):
+#     sheet.update_cell(row, 10, price)
 
 
 
@@ -57,7 +57,7 @@ def main():
         row = i
         unique_identifier = record['Unique Identifier']
         card_shiny = record['Shiny']
-        print(card_shiny)
+        # print(card_shiny)
 
         if unique_identifier:
             try:
