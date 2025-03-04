@@ -4,6 +4,9 @@ from google.oauth2.service_account import Credentials
 import requests
 from time import sleep
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -47,7 +50,7 @@ def fetch_card_details(query, retries=3):
     headers = {
         "X-APi-Key": POKEMON_TCG_API_KEY
     }
-
+    # print('POKEMON KEY', POKEMON_TCG_API_KEY)
     api_url = f"https://api.pokemontcg.io/v2/cards?q={query}"
 
     for attempt in range(retries):
@@ -60,6 +63,7 @@ def fetch_card_details(query, retries=3):
                 continue
             response.raise_for_status()
             data = response.json()
+            # print("data", data)
             if 'data' in data and data['data']:
                 logger.info(f"Received {len(data['data'])} results for query {query}")
                 return data['data']
@@ -75,7 +79,8 @@ def fetch_card_details(query, retries=3):
 
 # Read data from the collection sheet
 try:
-    collection_data = collection_sheet.get_all_records(empty2zero=False, head=1)
+    # collection_data = collection_sheet.get_all_records(empty2zero=False, head=1)
+    collection_data = collection_sheet.get_all_records(expected_headers=['Name', 'Card Number', 'Quantity', 'Unique Identifier', 'Type',  'Rarity','Shiny','Set','Status','Price (USD)','SGD'])
     logger.info(f"Headers: {collection_data[0].keys()}")
 except Exception as e:
     logger.error(f"Error reading collection sheet: {e}")
@@ -103,12 +108,14 @@ def process_search_results(card_name, cards, row_number, card_shiny):
             card_details.get('id', ''),  # Using the unique identifier
             card_details.get('tcgplayer', {}).get('url', '')
         ]
+        # print(new_row)
         search_results_sheet.append_row(new_row)
 
     print(f"Search results for '{card_name}' are available in the 'Search Results' sheet.")
     updates = [
         (row_number, 9, 'Fetched'),  # Mark row as fetched
-        (row_number, 4, new_row[8])  # Store the card's unique ID
+        (row_number, 4, new_row[8]),  # Store the card's unique ID
+        (row_number, 5, new_row[2])  # Store the pokemon card number
     ]
 
     # Store the correct price based on whether the card shiny or not
@@ -128,12 +135,14 @@ for row_number, row in enumerate(collection_data, start=2):  # start=2 to accoun
         if status == 'search':
             card_name = safe_strip(row['Name'])
             card_set = row['Set']
+            card_number = row['Card Number']
             card_rarity = row['Rarity']
             card_shiny = row['Shiny']
             if not card_name:
                 logger.warning(f"Card name is empty for row {row_number}")
                 continue
-            query = f'name:"{card_name}" set.name:"{card_set}" rarity:"{card_rarity}"'
+            # query = f'name:"{card_name}" set.name:"{card_set}" rarity:"{card_rarity}"'
+            query = f'name:"{card_name}" set.name:"{card_set}" number:"{card_number}"'
             cards = fetch_card_details(query)
             if cards:
                 updates = process_search_results(card_name, cards, row_number, card_shiny)
@@ -146,7 +155,7 @@ for row_number, row in enumerate(collection_data, start=2):  # start=2 to accoun
 
 batch_updates = [
     {"range": f"{gspread.utils.rowcol_to_a1(row, col)}", "values": [[value]]} for row, col, value in updates_to_write
-]
+]   
 # Perform batch update in one API call
 collection_sheet.batch_update(batch_updates)
 
